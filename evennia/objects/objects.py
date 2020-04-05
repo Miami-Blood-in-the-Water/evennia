@@ -2066,9 +2066,6 @@ class DefaultCharacter(DefaultObject):
         # Set the supplied key as the name of the intended object
         kwargs["key"] = key
 
-        # Get home for character
-        kwargs["home"] = ObjectDB.objects.get_id(kwargs.get("home", settings.DEFAULT_HOME))
-
         # Get permissions
         kwargs["permissions"] = kwargs.get("permissions", settings.PERMISSION_ACCOUNT_DEFAULT)
 
@@ -2529,10 +2526,10 @@ class DefaultExit(DefaultObject):
                 [
                     "puppet:false()",  # would be weird to puppet an exit ...
                     "traverse:all()",  # who can pass through exit by default
-                    "get:false()",
+                    "get:false()",  # noone can pick up the exit
                 ]
             )
-        )  # noone can pick up the exit
+        )
 
         # an exit should have a destination (this is replaced at creation time)
         if self.location:

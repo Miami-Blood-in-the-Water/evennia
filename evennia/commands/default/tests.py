@@ -991,6 +991,34 @@ class TestBuilding(CommandTest):
             "All object creation hooks were run. All old attributes where deleted before the swap.",
         )
 
+        from evennia.prototypes.prototypes import homogenize_prototype
+
+        test_prototype = [
+            homogenize_prototype(
+                {
+                    "prototype_key": "testkey",
+                    "prototype_tags": [],
+                    "typeclass": "typeclasses.objects.Object",
+                    "key": "replaced_obj",
+                    "attrs": [("foo", "bar", None, ""), ("desc", "protdesc", None, "")],
+                }
+            )
+        ]
+        with mock.patch(
+            "evennia.commands.default.building.protlib.search_prototype",
+            new=mock.MagicMock(return_value=test_prototype),
+        ) as mprot:
+            self.call(
+                building.CmdTypeclass(),
+                "/prototype Obj=testkey",
+                "replaced_obj changed typeclass from "
+                "evennia.objects.objects.DefaultObject to "
+                "typeclasses.objects.Object.\nAll object creation hooks were "
+                "run. Attributes set before swap were not removed. Prototype "
+                "'replaced_obj' was successfully applied over the object type.",
+            )
+            assert self.obj1.db.desc == "protdesc"
+
     def test_lock(self):
         self.call(building.CmdLock(), "", "Usage: ")
         self.call(building.CmdLock(), "Obj = test:all()", "Added lock 'test:all()' to Obj.")
@@ -1200,13 +1228,22 @@ class TestBuilding(CommandTest):
             inputs=["y"],
         )
 
+        self.call(
+            building.CmdSpawn(),
+            "/save testprot2 = {'key':'Test Char', "
+            "'typeclass':'evennia.objects.objects.DefaultCharacter'}",
+            "(Replacing `prototype_key` in prototype with given key.)|Saved prototype: testprot2",
+            inputs=["y"],
+        )
+
         self.call(building.CmdSpawn(), "/search ", "Key ")
         self.call(building.CmdSpawn(), "/search test;test2", "")
 
         self.call(
             building.CmdSpawn(),
             "/save {'key':'Test Char', " "'typeclass':'evennia.objects.objects.DefaultCharacter'}",
-            "To save a prototype it must have the 'prototype_key' set.",
+            "A prototype_key must be given, either as `prototype_key = <prototype>` or as "
+            "a key 'prototype_key' inside the prototype structure.",
         )
 
         self.call(building.CmdSpawn(), "/list", "Key ")
@@ -1284,7 +1321,7 @@ class TestBuilding(CommandTest):
         ball.delete()
 
         # test calling spawn with an invalid prototype.
-        self.call(building.CmdSpawn(), "'NO_EXIST'", "No prototype named 'NO_EXIST'")
+        self.call(building.CmdSpawn(), "'NO_EXIST'", "No prototype named 'NO_EXIST' was found.")
 
         # Test listing commands
         self.call(building.CmdSpawn(), "/list", "Key ")
@@ -1315,13 +1352,12 @@ class TestBuilding(CommandTest):
 
         # spawn/edit with invalid prototype
         msg = self.call(
-            building.CmdSpawn(), "/edit NO_EXISTS", "No prototype 'NO_EXISTS' was found."
+            building.CmdSpawn(), "/edit NO_EXISTS", "No prototype named 'NO_EXISTS' was found."
         )
 
         # spawn/examine (missing prototype)
         # lists all prototypes that exist
-        msg = self.call(building.CmdSpawn(), "/examine")
-        assert "testball" in msg and "testprot" in msg
+        self.call(building.CmdSpawn(), "/examine", "You need to specify a prototype-key to show.")
 
         # spawn/examine with valid prototype
         # prints the prototype
@@ -1330,7 +1366,7 @@ class TestBuilding(CommandTest):
 
         # spawn/examine with invalid prototype
         # shows error
-        self.call(building.CmdSpawn(), "/examine NO_EXISTS", "No prototype 'NO_EXISTS' was found.")
+        self.call(building.CmdSpawn(), "/examine NO_EXISTS", "No prototype named 'NO_EXISTS' was found.")
 
 
 class TestComms(CommandTest):
