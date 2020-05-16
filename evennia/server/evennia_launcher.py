@@ -2282,6 +2282,7 @@ def main():
         # but keep 'evennia' as the name instead of django-admin. This is
         # an exit condition.
         sys.argv[0] = re.sub(r"(-script\.pyw?|\.exe)?$", "", sys.argv[0])
+        print(sys.argv)
         sys.exit(execute_from_command_line())
 
     elif not args.tail_log:
